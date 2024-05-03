@@ -28,8 +28,11 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 		Average,
 		Stat
 	}
-
+#if WINDOWS
 	[DllImport("evaluator.dll")]
+#else
+	[DllImport("libevaluator.so")]
+#endif
 	private static extern string analyze(IntPtr[] arr, int size);
 
 	[Command("munch")]
@@ -142,7 +145,7 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 				ConcurrentBag<string> customStats = new ConcurrentBag<string>();
 
 				int munchLeft = player.Value.Count;
-				
+
 				foreach (var game in player.Value)
 				{
 					ThreadPool.QueueUserWorkItem(state =>
