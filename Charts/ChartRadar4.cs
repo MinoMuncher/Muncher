@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using Minomuncher.Commands;
 
 namespace Minomuncher.Charts;
@@ -10,24 +11,33 @@ public class ChartRadar4 : ChartBase
 	public double[] max { get; private set; }
 	public string[] formatTypes { get; private set; }
 
-	public ChartRadar4(string username,
-		PlayerStats playerStats,
+	public ChartRadar4(KeyValuePair<string, PlayerStats>[] playerStats,
 		bool scale,
 		MunchModule.Normalization norm) : base(
 		"radar", "radar")
 	{
-		double[] radarData = new double[]
-		{
-			playerStats.btbChainEfficiency, playerStats.btbChain, playerStats.btbChainAttack, playerStats.btbChainApm,
-			playerStats.comboChainEfficiency, playerStats.comboChain, playerStats.comboChainAttack,
-			playerStats.comboChainApm,
-		};
-
 		double scaleMax = 0;
-		double[] scales = new double[radarData.Length];
+		Dictionary<string, double[]> scalePlayers = new();
 
-		foreach (var scaleValue in scales)
-			scaleMax = Math.Max(scaleMax, scaleValue);
+		foreach (var player in playerStats)
+		{
+			var stats = player.Value;
+			double[] radarData = new double[]
+			{
+				stats.btbChainEfficiency, stats.btbChain, stats.btbChainAttack, stats.btbChainApm,
+				stats.comboChainEfficiency, stats.comboChain, stats.comboChainAttack,
+				stats.comboChainApm,
+			};
+			scalePlayers.Add(player.Key, radarData);
+		}
+
+		foreach (var stats in scalePlayers.Values)
+		{
+			foreach (var scaleValue in stats)
+			{
+				scaleMax = Math.Max(scaleMax, scaleValue);
+			}
+		}
 
 		List<RadarConfig> template = new();
 		template.Add(new RadarConfig()
@@ -127,23 +137,27 @@ public class ChartRadar4 : ChartBase
 			formatType = "round"
 		});
 
-		this.min = new double[radarData.Length];
-		this.max = new double[radarData.Length];
-		for (int i = 0; i < radarData.Length; i++)
+		this.min = new double[template.Count];
+		this.max = new double[template.Count];
+		foreach (var player in scalePlayers)
 		{
-			scales[i] = NormalizeStat(radarData[i], template[i].min, template[i].max);
-			this.min[i] = template[i].min;
-			this.max[i] = template[i].max;
+			for (int i = 0; i < template.Count; i++)
+			{
+				scalePlayers[player.Key][i] =
+					NormalizeStat(scalePlayers[player.Key][i], template[i].min, template[i].max);
+				this.min[i] = template[i].min;
+				this.max[i] = template[i].max;
+			}
+
+			data.datasets.Add(new Dataset()
+			{
+				label = player.Key,
+				data = scalePlayers[player.Key]
+			});
 		}
 
 		data.labels = template.Select(x => x.label).ToList();
 		formatTypes = template.Select(x => x.formatType).ToArray();
-
-		data.datasets.Add(new Dataset()
-		{
-			label = username,
-			data = scales
-		});
 	}
 
 

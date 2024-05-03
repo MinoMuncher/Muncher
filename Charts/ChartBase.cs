@@ -16,12 +16,20 @@ public abstract class ChartBase
 
 	public abstract string SerializeChart();
 
-	public async Task<string> DownloadChart(int width,int height)
+	public async Task<string> DownloadChart(int width, int height)
 	{
 		var postJson = SerializeChart();
 
 		using HttpClient client = new HttpClient();
 		HttpContent content = new StringContent(postJson, Encoding.UTF8, "application/json");
+		var graphBase64 = await client.PostAsync($"http://localhost:8084?width={width}&height={height}", content);
+		return await graphBase64.Content.ReadAsStringAsync();
+	}
+
+	public static async Task<string> DownloadChart(string json, int width, int height)
+	{
+		using HttpClient client = new HttpClient();
+		HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
 		var graphBase64 = await client.PostAsync($"http://localhost:8084?width={width}&height={height}", content);
 		return await graphBase64.Content.ReadAsStringAsync();
 	}

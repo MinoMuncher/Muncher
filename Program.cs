@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -10,6 +11,9 @@ internal class Program
 	private DiscordSocketClient _client;
 	private CommandService _commands;
 	private IServiceProvider _services;
+	public static ulong DISCORD_BOT_ADMIN { get; private set; }
+	ConcurrentDictionary<ulong, DateTime> _rateLimitHistory = new();
+
 
 	private static void Main(string[] args)
 		=> new Program().MainAsync().Wait();
@@ -18,6 +22,7 @@ internal class Program
 	{
 		DotNetEnv.Env.Load("./.env");
 		await TetrioAPI.Initialize();
+		DISCORD_BOT_ADMIN = ulong.Parse(DotNetEnv.Env.GetString("DISCORD_BOT_ADMIN"));
 
 		var config = new DiscordSocketConfig
 		{
@@ -53,26 +58,42 @@ internal class Program
 
 	private async Task HandleCommandAsync(SocketMessage messageParam)
 	{
-		// Don't process the command if it was a system message
-		var message = messageParam as SocketUserMessage;
-		if (message == null) return;
+		Task.Run(async () =>
+		{
+			var message = messageParam as SocketUserMessage;
+			if (message == null) return;
 
-		// Create a number to track where the prefix ends and the command begins
-		int argPos = 0;
+			int argPos = 0;
 
-		// Determine if the message is a command based on the prefix and make sure no bots trigger commands
-		if (!(message.HasCharPrefix('!', ref argPos) &&
-		      !message.Author.IsBot))
-			return;
+			if (!(message.HasCharPrefix('!', ref argPos) &&
+			      !message.Author.IsBot))
+				return;
 
-		var context = new SocketCommandContext(_client, message);
-//TODO: rate limit
+			var context = new SocketCommandContext(_client, message);
+		
+			if (_rateLimitHistory.ContainsKey(context.User.Id))
+			{
+				var diff = _rateLimitHistory[context.User.Id] - DateTime.Now;
+				if (Math.Abs(diff.Seconds) < 2)
+				{
+					context.Message.ReplyAsync("You are being rate limited, try again later");
+					return;
+				}
+				else
+				{
+					_rateLimitHistory.AddOrUpdate(context.User.Id, DateTime.Now, (Key, Value) => Value);
+				}
+			}
+			else
+			{
+				_rateLimitHistory.AddOrUpdate(context.User.Id, DateTime.Now, (Key, Value) => Value);
+			}
 
-		Console.WriteLine("excute:" + context);
-		await _commands.ExecuteAsync(
-			context: context,
-			argPos: argPos,
-			services: _services);
+			await _commands.ExecuteAsync(
+				context: context,
+				argPos: argPos,
+				services: _services);
+		});
 	}
 
 	private Task Client_Ready()

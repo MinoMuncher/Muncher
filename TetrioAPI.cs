@@ -39,7 +39,6 @@ public class TetrioAPI
 
 			if (response.IsSuccessStatusCode)
 			{
-				Console.WriteLine("Response: " + responseContent);
 				using var jsonDocument = JsonDocument.Parse(responseContent);
 				var tokenValue = jsonDocument.RootElement.GetProperty("token").GetString();
 				TOKEN = tokenValue;
@@ -98,7 +97,8 @@ public class TetrioAPI
 		if (data == null)
 		{
 			data = await DownloadReplayFromIdAsync(id);
-			File.WriteAllText(".cache/" + id, data);
+			if (useCache)
+				File.WriteAllText(".cache/" + id, data);
 		}
 
 		return data;
@@ -160,6 +160,30 @@ public class TetrioAPI
 				var user = JsonSerializer.Deserialize<UserSearch>(responseContent);
 				if ((bool)user.success)
 					return user.data.user;
+				else return null;
+			}
+			else
+				throw new System.Exception();
+		}
+
+		return null;
+	}
+
+	public static async Task<List<User>?> DownloadLeagueUserList()
+	{
+		//https://ch.tetr.io/api/users/lists/league/all
+		var request = new HttpRequestMessage(HttpMethod.Get, $"https://ch.tetr.io/api/users/lists/league/all");
+		SetRequestMessage(request, true);
+		using (var httpClient = new HttpClient())
+		{
+			var response = await httpClient.SendAsync(request);
+			var responseContent = await response.Content.ReadAsStringAsync();
+
+			if (response.IsSuccessStatusCode)
+			{
+				var leaderBoard = JsonSerializer.Deserialize<LeagueLeaderBoard>(responseContent);
+				if ((bool)leaderBoard.success)
+					return leaderBoard.data.users;
 				else return null;
 			}
 			else

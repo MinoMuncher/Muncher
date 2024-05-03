@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace Minomuncher.Charts;
 
@@ -7,6 +8,7 @@ public class ChartBar : ChartBase
 	public ChartBar(string username, PlayerStats playerStats) : base("bar", "bar")
 	{
 		var total = playerStats.clearTypes.GetTotalClears();
+
 		data.labels = new List<string>() { username };
 
 
@@ -36,7 +38,8 @@ public class ChartBar : ChartBase
 		});
 		data.datasets.Add(new Dataset()
 		{
-			label = $"Quads {playerStats.clearTypes.QUAD / (double)total * 100:0.00}% ({playerStats.clearTypes.QUAD})",
+			label =
+				$"Quads {playerStats.clearTypes.QUAD / (double)total * 100:0.00}% ({playerStats.clearTypes.QUAD})",
 			data = new[] { playerStats.clearTypes.QUAD / (double)total * 100 },
 			backgroundColor = "#83b2d0",
 			rawData = playerStats.clearTypes.QUAD
