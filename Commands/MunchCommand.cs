@@ -38,7 +38,6 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 
 		try
 		{
-			int munchRemaining = 0;
 			Dictionary<string, List<string>> playerGames = new();
 			List<string> errors = new List<string>();
 
@@ -90,50 +89,14 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 			}
 			else
 			{
-				Dictionary<string, List<Record>> playerGameIds = new();
-
-				foreach (var player in players)
+				try
 				{
-					List<Record> gamesList;
-					try
-					{
-						gamesList = await FetchGameListAsync(player);
-					}
-					catch
-					{
-						await message.ModifyAsync(properties =>
-							properties.Content = $"failed to fetch user from {string.Join(",", players)}");
-						return;
-					}
-
-					munchRemaining += gamesList.Count;
-					playerGameIds.Add(player, gamesList);
+					await Util.GetPlayerGames(players.ToArray(), errors, message, playerGames);
 				}
-
-				await message.ModifyAsync(properties =>
-					properties.Content = $"fetched {munchRemaining} TL games from {string.Join(",", players)}\n" +
-					                     $"downloading...");
-
-
-				foreach (var playerGameList in playerGameIds)
+				catch (Exception e)
 				{
-					//		Console.WriteLine($"downloading TL games:{playerGameList.Key}");
-					var games = new List<string>();
-					//ダウンロードと処理
-					foreach (var record in playerGameList.Value)
-					{
-						try
-						{
-							games.Add(await TetrioAPI.GetReplayFromIdAsync(record.replayid));
-						}
-						catch (System.Exception e)
-						{
-							errors.Add($"{record.replayid} is not exists");
-							Console.WriteLine(e.ToString() + "\nfailed to download:" + record.replayid);
-						}
-					}
-
-					playerGames.Add(playerGameList.Key, games);
+					await message.ModifyAsync(properties =>
+						properties.Content = e.Message);
 				}
 			}
 
@@ -327,17 +290,6 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 		}
 	}
 
-	/// <summary>
-	/// 引数のユーザーのそれぞれ過去10試合のゲームをダウンロード
-	/// </summary>
-	/// <param name="players"></param>
-	/// <param name="message"></param>
-	/// <returns></returns>
-	private async Task<List<Record>> FetchGameListAsync(string player)
-	{
-		var user = await TetrioAPI.DownloadUserAsync(player);
-		return (await TetrioAPI.DownloadListOfGameIds(user._id)).ToList();
-	}
 
 	private void ParseArgs(string[] args, out List<string> players)
 	{
