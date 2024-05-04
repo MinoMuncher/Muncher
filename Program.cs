@@ -70,13 +70,13 @@ internal class Program
 				return;
 
 			var context = new SocketCommandContext(_client, message);
-		
-			if (_rateLimitHistory.ContainsKey(context.User.Id))
+
+			if (_rateLimitHistory.TryGetValue(context.User.Id, out var value))
 			{
-				var diff = _rateLimitHistory[context.User.Id] - DateTime.Now;
-				if (Math.Abs(diff.Seconds) < 2)
+				var diff = DateTime.Now - value;
+				if (Math.Abs(diff.TotalSeconds) < 2)
 				{
-					context.Message.ReplyAsync("You are being rate limited, try again later");
+					await context.Message.ReplyAsync("You are being rate limited, try again later");
 					return;
 				}
 				else
