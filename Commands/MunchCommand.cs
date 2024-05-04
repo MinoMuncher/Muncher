@@ -94,7 +94,18 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 
 				foreach (var player in players)
 				{
-					var gamesList = await FetchGameListAsync(player);
+					List<Record> gamesList;
+					try
+					{
+						gamesList = await FetchGameListAsync(player);
+					}
+					catch
+					{
+						await message.ModifyAsync(properties =>
+							properties.Content = $"failed to fetch user from {string.Join(",", players)}");
+						return;
+					}
+
 					munchRemaining += gamesList.Count;
 					playerGameIds.Add(player, gamesList);
 				}
