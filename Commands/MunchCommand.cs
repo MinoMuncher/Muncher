@@ -28,12 +28,6 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 		Average,
 		Stat
 	}
-#if WINDOWS
-	[DllImport("evaluator.dll")]
-#else
-	[DllImport("libevaluator.so")]
-#endif
-	private static extern string analyze(IntPtr[] arr, int size);
 
 	[Command("munch")]
 	public async Task MunchAsync(params string[]? args)
@@ -178,7 +172,7 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 				IntPtr[] ptrs = new IntPtr[rawStatsJson.Length];
 				for (var i = 0; i < ptrs.Length; i++)
 					ptrs[i] = (Marshal.StringToHGlobalAnsi(rawStatsJson[i]));
-				var statsJson = analyze(ptrs, ptrs.Length);
+				var statsJson = NativeMethod.NativeMethod.Analyze(ptrs, ptrs.Length);
 
 				var stats = JsonSerializer.Deserialize<PlayerStats>(statsJson);
 				playerStats.AddOrUpdate(player.Key, stats, (Key, Value) => Value);
