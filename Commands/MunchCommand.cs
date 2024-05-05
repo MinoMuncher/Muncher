@@ -32,8 +32,13 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 	[Command("munch")]
 	public async Task MunchAsync(params string[]? args)
 	{
+		bool scale;
+		bool normalize;
+		int games;
+		bool league;
+
 		List<string> players = new List<string>();
-//		ParseArgs(args, out players);
+		ParseArgs(args, out players, out scale, out normalize, out games, out league);
 		players = args.ToList();
 
 		try
@@ -291,8 +296,19 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 	}
 
 
-	private void ParseArgs(string[] args, out List<string> players)
+	private void ParseArgs(string[] args,
+		out List<string> players,
+		out bool scale,
+		out bool normalize,
+		out int games,
+		out bool league)
 	{
+		scale = false;
+		normalize = false;
+		games = int.MaxValue;
+		league = false;
+
+
 		for (int i = 0; i < args.Length; i++)
 		{
 			if (MODIFIER_ALIAS.ContainsKey(args[i]))
@@ -308,7 +324,7 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 				switch (args[i])
 				{
 					case "-s":
-
+						scale = true;
 						break;
 
 					case "-o":
@@ -316,9 +332,22 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 						break;
 
 					case "-n":
+						normalize = true;
+						break;
 
+					case "-g":
+						i++;
+						games = int.Parse(args[i]);
+						break;
+
+					case "-l":
+						league = true;
 						break;
 				}
+			}
+			else
+			{
+				players.Add(args[i]);
 			}
 		}
 	}
