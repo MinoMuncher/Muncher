@@ -173,7 +173,7 @@ public class TetrioAPI
 	{
 		//https://ch.tetr.io/api/users/lists/league/all
 		var request = new HttpRequestMessage(HttpMethod.Get, $"https://ch.tetr.io/api/users/lists/league/all");
-		SetRequestMessage(request, true);
+		SetRequestMessage(request, false);
 		using (var httpClient = new HttpClient())
 		{
 			var response = await httpClient.SendAsync(request);

@@ -134,6 +134,11 @@ public class ClearTypes
 		   TSPIN_MINI_SINGLE + TSPIN_MINI_DOUBLE +
 		   PERFECT_CLEAR;
 
+	public int GetTotalClearsExceptNone()
+		=> SINGLE + DOUBLE + TRIPLE + QUAD + PENTA +
+		   TSPIN + TSPIN_SINGLE + TSPIN_DOUBLE + TSPIN_TRIPLE + TSPIN_QUAD +
+		   TSPIN_MINI + TSPIN_MINI_SINGLE + TSPIN_MINI_DOUBLE +
+		   PERFECT_CLEAR;
 
 	public int NONE { get; set; }
 	public int SINGLE { get; set; }

@@ -41,8 +41,13 @@ public static class Util
 		{
 			var games = new List<string>();
 			//ダウンロードと処理
-			foreach (var record in playerGameList.Value)
+			for (var i = 0; i < playerGameList.Value.Count; i++)
 			{
+				var record = playerGameList.Value[i];
+				await message.ModifyAsync(properties =>
+					properties.Content = $"fetched {munchGames} TL games from {JoinWithQuotes(",", players)}\n" +
+					                     $"downloading...({i + 1}/{playerGameList.Value.Count}) {record.replayid}");
+
 				try
 				{
 					games.Add(await TetrioAPI.GetReplayFromIdAsync(record.replayid));

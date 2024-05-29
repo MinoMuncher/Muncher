@@ -14,6 +14,8 @@ namespace Minomuncher.Commands;
 
 public class MunchModule : ModuleBase<SocketCommandContext>
 {
+	private bool _noImgMode = false;
+
 	private readonly Dictionary<string, string> MODIFIER_ALIAS = new Dictionary<string, string>
 	{
 		{ "--scale", "-s" },
@@ -133,10 +135,9 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 						}
 						catch (MunchException e)
 						{
-							message.ModifyAsync(properties =>
-								properties.Content = e.Message);
-
-							return;
+							errors.Add(e.Message);
+							//	message.ModifyAsync(properties =>
+							//		properties.Content = e.Message);
 						}
 
 						Interlocked.Decrement(ref munchLeft);
@@ -190,87 +191,91 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 
 			List<string> sendImages = new List<string>();
 			List<FileAttachment> attachments = new();
-			try
-			{
-				{
-					List<ChartBar> chartBars = new List<ChartBar>();
 
-					foreach (var player in playerStatsArray)
+			if (!_noImgMode)
+			{
+				try
+				{
 					{
-						var chart = new ChartBar(player.Key, player.Value);
-						chartBars.Add(chart);
+						List<ChartBar> chartBars = new List<ChartBar>();
+
+						foreach (var player in playerStatsArray)
+						{
+							var chart = new ChartBar(player.Key, player.Value);
+							chartBars.Add(chart);
+						}
+
+						var json = JsonSerializer.Serialize(chartBars);
+						var base64img = await ChartBase.DownloadChart(json, 800, 800);
+						sendImages.Add(base64img);
 					}
 
-					var json = JsonSerializer.Serialize(chartBars);
-					var base64img = await ChartBase.DownloadChart(json, 800, 800);
-					sendImages.Add(base64img);
-				}
-
-				{
-					List<ChartWell> chartWells = new List<ChartWell>();
-
-					foreach (var player in playerStatsArray)
 					{
-						var chart = new ChartWell(player.Key, player.Value, false);
-						chartWells.Add(chart);
+						List<ChartWell> chartWells = new List<ChartWell>();
+
+						foreach (var player in playerStatsArray)
+						{
+							var chart = new ChartWell(player.Key, player.Value, false);
+							chartWells.Add(chart);
+						}
+
+						var json = JsonSerializer.Serialize(chartWells);
+						var base64img =
+							await ChartBase.DownloadChart(json, 800, 800);
+						sendImages.Add(base64img);
 					}
 
-					var json = JsonSerializer.Serialize(chartWells);
-					var base64img =
-						await ChartBase.DownloadChart(json, 800, 800);
-					sendImages.Add(base64img);
-				}
+					{
+						var chart = new ChartRadar1(playerStatsArray, false, Normalization.Average);
+						var base64img = await chart.DownloadChart(800, 800);
+						sendImages.Add(base64img);
+					}
 
+					{
+						var chart = new ChartRadar2(playerStatsArray, false, Normalization.Average);
+						var base64img = await chart.DownloadChart(800, 800);
+						sendImages.Add(base64img);
+					}
+
+					{
+						var chart = new ChartRadar3(playerStatsArray, false, Normalization.Average);
+						var base64img = await chart.DownloadChart(200, 200);
+						sendImages.Add(base64img);
+					}
+
+					{
+						var chart = new ChartRadar4(playerStatsArray, false, Normalization.Average);
+						var base64img = await chart.DownloadChart(200, 200);
+						sendImages.Add(base64img);
+					}
+
+					{
+						var chart = new ChartRadar5(playerStatsArray, false, Normalization.Average);
+						var base64img = await chart.DownloadChart(200, 200);
+						sendImages.Add(base64img);
+					}
+
+					{
+						var chart = new ChartRadar6(playerStatsArray, false, Normalization.Average);
+						var base64img = await chart.DownloadChart(200, 200);
+						sendImages.Add(base64img);
+					}
+
+
+					foreach (var imageBase64 in sendImages)
+					{
+						var imageBytes = Convert.FromBase64String(imageBase64.Split(",")[1]);
+						MemoryStream stream = new MemoryStream(imageBytes);
+						attachments.Add(new FileAttachment(stream, "output.png"));
+					}
+				}
+				catch
 				{
-					var chart = new ChartRadar1(playerStatsArray, false, Normalization.Average);
-					var base64img = await chart.DownloadChart(800, 800);
-					sendImages.Add(base64img);
+					await message.ModifyAsync(properties =>
+						properties.Content = $"failed to generate graphs");
+
+					return;
 				}
-
-				{
-					var chart = new ChartRadar2(playerStatsArray, false, Normalization.Average);
-					var base64img = await chart.DownloadChart(800, 800);
-					sendImages.Add(base64img);
-				}
-
-				{
-					var chart = new ChartRadar3(playerStatsArray, false, Normalization.Average);
-					var base64img = await chart.DownloadChart(200, 200);
-					sendImages.Add(base64img);
-				}
-
-				{
-					var chart = new ChartRadar4(playerStatsArray, false, Normalization.Average);
-					var base64img = await chart.DownloadChart(200, 200);
-					sendImages.Add(base64img);
-				}
-
-				{
-					var chart = new ChartRadar5(playerStatsArray, false, Normalization.Average);
-					var base64img = await chart.DownloadChart(200, 200);
-					sendImages.Add(base64img);
-				}
-
-				{
-					var chart = new ChartRadar6(playerStatsArray, false, Normalization.Average);
-					var base64img = await chart.DownloadChart(200, 200);
-					sendImages.Add(base64img);
-				}
-
-
-				foreach (var imageBase64 in sendImages)
-				{
-					var imageBytes = Convert.FromBase64String(imageBase64.Split(",")[1]);
-					MemoryStream stream = new MemoryStream(imageBytes);
-					attachments.Add(new FileAttachment(stream, "output.png"));
-				}
-			}
-			catch
-			{
-				await message.ModifyAsync(properties =>
-					properties.Content = $"failed to generate graphs");
-
-				return;
 			}
 
 			await message.DeleteAsync();
@@ -280,11 +285,131 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 
 			MessageReference refMessage = new MessageReference(Context.Message.Id);
 			var resultMessage = "parsed\n";
+			if (_noImgMode)
+				resultMessage += "skipped generating images\n";
 
 			foreach (var error in errors)
 			{
 				resultMessage += error + "\n";
 			}
+
+			foreach (var player in playerStatsArray)
+			{
+				float totalClears = player.Value.clearTypes.GetTotalClearsExceptNone();
+
+				var glickoPredData = new GlickoEstimator.ModelInput()
+				{
+					Single = player.Value.clearTypes.SINGLE / totalClears,
+					Double = player.Value.clearTypes.DOUBLE / totalClears,
+					Triple = player.Value.clearTypes.TRIPLE / totalClears,
+					Quad = player.Value.clearTypes.QUAD / totalClears,
+					Tspin = player.Value.clearTypes.TSPIN / totalClears,
+					TspinSingle = player.Value.clearTypes.TSPIN_SINGLE / totalClears,
+					TspinDouble = player.Value.clearTypes.TSPIN_DOUBLE / totalClears,
+					TspinTriple = player.Value.clearTypes.TSPIN_TRIPLE / totalClears,
+					TspinMini = player.Value.clearTypes.TSPIN_MINI / totalClears,
+					TspinMiniSingle = player.Value.clearTypes.TSPIN_MINI_SINGLE / totalClears,
+					//	TspinMiniDouble = player.Value.clearTypes.TSPIN_MINI_DOUBLE / totalClears,
+					PerfectClear = player.Value.clearTypes.PERFECT_CLEAR / totalClears,
+					TEfficiency = (float)Math.Min(Math.Max(0, player.Value.tEfficiency), 1),
+					IEfficiency = (float)Math.Min(Math.Max(0, player.Value.iEfficiency), 1),
+					CheeseApl = (float)Math.Min(Math.Max(0, player.Value.cheeseApl / 5f), 1),
+					DownStackAPL = (float)Math.Min(Math.Max(0, player.Value.downstackApl / 5f), 1),
+					UpStackAPL = (float)Math.Min(Math.Max(0, player.Value.upstackApl / 5f), 1),
+					APL = (float)Math.Min(Math.Max(0, player.Value.apl / 5f), 1),
+					APP = (float)Math.Min(Math.Max(0, player.Value.app / 5f), 1),
+					KPP = (float)Math.Min(Math.Max(0, player.Value.kpp / 5f), 1),
+					KPS = (float)Math.Min(Math.Max(0, player.Value.kps / 20f), 1),
+					StackHeight = (float)Math.Min(Math.Max(0, player.Value.stackHeight / 20f), 1),
+					GarbageHeight = (float)Math.Min(Math.Max(0, player.Value.garbageHeight / 20f), 1),
+					SpikeEfficiency = (float)Math.Min(Math.Max(0, player.Value.spikeEfficiency / 1f), 1),
+					APM = (float)Math.Min(Math.Max(0, player.Value.apm / 300f), 1),
+					OpenerAPM = (float)Math.Min(Math.Max(0, player.Value.openerApm / 500f), 1),
+					MidGameAPM = (float)Math.Min(Math.Max(0, player.Value.midgameApm / 300f), 1),
+					PPS = (float)Math.Min(Math.Max(0, player.Value.pps / 5f), 1),
+					OpenerPPS = (float)Math.Min(Math.Max(0, player.Value.openerPps / 5f), 1),
+					MidGamePPS = (float)Math.Min(Math.Max(0, player.Value.midgamePps / 5f), 1),
+					BTBChainEfficiency = (float)Math.Min(Math.Max(0, player.Value.btbChainEfficiency / 1f), 1),
+					BTBChain = (float)Math.Min(Math.Max(0, player.Value.btbChain / 20f), 1),
+					BTBChainAPM = (float)Math.Min(Math.Max(0, player.Value.btbChainApm / 500f), 1),
+					BTBChainAttack = (float)Math.Min(Math.Max(0, player.Value.btbChainAttack / 100f), 1),
+					BTBChainAPP = (float)Math.Min(Math.Max(0, player.Value.btbChainApp / 5f), 1),
+					BTBChainEfficiency2 = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 1f), 1),
+					ComboChain = (float)Math.Min(Math.Max(0, player.Value.comboChain / 10f), 1),
+					ComboChainAPM = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 500f), 1),
+					ComboChainAttack = (float)Math.Min(Math.Max(0, player.Value.comboChainAttack / 50f), 1),
+					ComboChainAPP = (float)Math.Min(Math.Max(0, player.Value.comboChainApp / 5f), 1),
+					AverageSpikePotential = (float)Math.Min(Math.Max(0, player.Value.averageSpikePotential / 1f), 1),
+					AverageDefencePotential =
+						(float)Math.Min(Math.Max(0, player.Value.averageDefencePotential / 30f), 1),
+					BlockfishScore = (float)Math.Min(Math.Max(0, player.Value.blockfishScore / 20f), 1),
+					BurstPPS = (float)Math.Min(Math.Max(0, player.Value.burstPps / 10f), 1),
+					AttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.attackDelayRate / 1f), 1),
+					PreAttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.preAttackDelayRate / 1f), 1),
+				};
+				var glickoResult = GlickoEstimator.Predict(glickoPredData);
+
+				var predData = new TREstimator.ModelInput()
+				{
+					Glicko = glickoResult.Score,
+					Single = player.Value.clearTypes.SINGLE / totalClears,
+					Double = player.Value.clearTypes.DOUBLE / totalClears,
+					Triple = player.Value.clearTypes.TRIPLE / totalClears,
+					Quad = player.Value.clearTypes.QUAD / totalClears,
+					Tspin = player.Value.clearTypes.TSPIN / totalClears,
+					TspinSingle = player.Value.clearTypes.TSPIN_SINGLE / totalClears,
+					TspinDouble = player.Value.clearTypes.TSPIN_DOUBLE / totalClears,
+					TspinTriple = player.Value.clearTypes.TSPIN_TRIPLE / totalClears,
+					TspinMini = player.Value.clearTypes.TSPIN_MINI / totalClears,
+					TspinMiniSingle = player.Value.clearTypes.TSPIN_MINI_SINGLE / totalClears,
+					//	TspinMiniDouble = player.Value.clearTypes.TSPIN_MINI_DOUBLE / totalClears,
+					PerfectClear = player.Value.clearTypes.PERFECT_CLEAR / totalClears,
+					TEfficiency = (float)Math.Min(Math.Max(0, player.Value.tEfficiency), 1),
+					IEfficiency = (float)Math.Min(Math.Max(0, player.Value.iEfficiency), 1),
+					CheeseApl = (float)Math.Min(Math.Max(0, player.Value.cheeseApl / 5f), 1),
+					DownStackAPL = (float)Math.Min(Math.Max(0, player.Value.downstackApl / 5f), 1),
+					UpStackAPL = (float)Math.Min(Math.Max(0, player.Value.upstackApl / 5f), 1),
+					APL = (float)Math.Min(Math.Max(0, player.Value.apl / 5f), 1),
+					APP = (float)Math.Min(Math.Max(0, player.Value.app / 5f), 1),
+					KPP = (float)Math.Min(Math.Max(0, player.Value.kpp / 5f), 1),
+					KPS = (float)Math.Min(Math.Max(0, player.Value.kps / 20f), 1),
+					StackHeight = (float)Math.Min(Math.Max(0, player.Value.stackHeight / 20f), 1),
+					GarbageHeight = (float)Math.Min(Math.Max(0, player.Value.garbageHeight / 20f), 1),
+					SpikeEfficiency = (float)Math.Min(Math.Max(0, player.Value.spikeEfficiency / 1f), 1),
+					APM = (float)Math.Min(Math.Max(0, player.Value.apm / 300f), 1),
+					OpenerAPM = (float)Math.Min(Math.Max(0, player.Value.openerApm / 500f), 1),
+					MidGameAPM = (float)Math.Min(Math.Max(0, player.Value.midgameApm / 300f), 1),
+					PPS = (float)Math.Min(Math.Max(0, player.Value.pps / 5f), 1),
+					OpenerPPS = (float)Math.Min(Math.Max(0, player.Value.openerPps / 5f), 1),
+					MidGamePPS = (float)Math.Min(Math.Max(0, player.Value.midgamePps / 5f), 1),
+					BTBChainEfficiency = (float)Math.Min(Math.Max(0, player.Value.btbChainEfficiency / 1f), 1),
+					BTBChain = (float)Math.Min(Math.Max(0, player.Value.btbChain / 20f), 1),
+					BTBChainAPM = (float)Math.Min(Math.Max(0, player.Value.btbChainApm / 500f), 1),
+					BTBChainAttack = (float)Math.Min(Math.Max(0, player.Value.btbChainAttack / 100f), 1),
+					BTBChainAPP = (float)Math.Min(Math.Max(0, player.Value.btbChainApp / 5f), 1),
+					BTBChainEfficiency2 = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 1f), 1),
+					ComboChain = (float)Math.Min(Math.Max(0, player.Value.comboChain / 10f), 1),
+					ComboChainAPM = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 500f), 1),
+					ComboChainAttack = (float)Math.Min(Math.Max(0, player.Value.comboChainAttack / 50f), 1),
+					ComboChainAPP = (float)Math.Min(Math.Max(0, player.Value.comboChainApp / 5f), 1),
+					AverageSpikePotential = (float)Math.Min(Math.Max(0, player.Value.averageSpikePotential / 1f), 1),
+					AverageDefencePotential =
+						(float)Math.Min(Math.Max(0, player.Value.averageDefencePotential / 30f), 1),
+					BlockfishScore = (float)Math.Min(Math.Max(0, player.Value.blockfishScore / 20f), 1),
+					BurstPPS = (float)Math.Min(Math.Max(0, player.Value.burstPps / 10f), 1),
+					AttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.attackDelayRate / 1f), 1),
+					PreAttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.preAttackDelayRate / 1f), 1),
+				};
+
+
+				var trResult = TREstimator.Predict(predData);
+
+				resultMessage += $"{player.Key}'s estimated glicko:{glickoResult.Score}, tr:{trResult.Score}" + "\n";
+			}
+
+
+//Load model and predict output
+
 
 			await Context.Channel.SendFilesAsync(attachments, resultMessage, messageReference: refMessage);
 			//		GC.Collect();
