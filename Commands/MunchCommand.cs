@@ -77,8 +77,8 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 					}
 				}
 				else
-					players.Add(args[i].ToLower());
 				{
+					players.Add(args[i].ToLower());
 				}
 			}
 		}
