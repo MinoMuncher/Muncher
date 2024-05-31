@@ -77,14 +77,14 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 					}
 				}
 				else
-				{
 					players.Add(args[i].ToLower());
+				{
 				}
 			}
 		}
 	}
 
-	private bool _noImgMode = true;
+	private bool _noImgMode = false;
 
 
 	public enum Normalization
