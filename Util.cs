@@ -11,7 +11,7 @@ public static class Util
 	/// </summary>
 	/// <param name="players"></param>
 	public static async Task GetPlayerGames(string[] players, List<string> errors,
-		IUserMessage message, Dictionary<string, List<string>> playerGames)
+		IUserMessage message, Dictionary<string, List<string>> playerGames, int? gameCountToDownload)
 	{
 		int munchGames = 0;
 		Dictionary<string, List<Record>> playerGameIds = new();
@@ -22,6 +22,11 @@ public static class Util
 			try
 			{
 				gamesList = await FetchGameListAsync(player);
+
+				if (gameCountToDownload == null)
+					gameCountToDownload = gamesList.Count;
+				if (gamesList.Count > gameCountToDownload)
+					gamesList.RemoveRange((int)gameCountToDownload, gamesList.Count - (int)gameCountToDownload);
 			}
 			catch
 			{

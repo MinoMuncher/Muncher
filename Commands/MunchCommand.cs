@@ -14,16 +14,78 @@ namespace Minomuncher.Commands;
 
 public class MunchModule : ModuleBase<SocketCommandContext>
 {
-	private bool _noImgMode = false;
-
-	private readonly Dictionary<string, string> MODIFIER_ALIAS = new Dictionary<string, string>
+	class Args
 	{
-		{ "--scale", "-s" },
-		{ "--normalize", "-n" },
-		{ "--order", "-o" },
-		{ "--games", "-g" },
-		{ "--league", "-l" }
-	};
+		private readonly Dictionary<string, string> MODIFIER_ALIAS = new()
+		{
+			{ "--scale", "-s" },
+			{ "--normalize", "-n" },
+			{ "--order", "-o" },
+			{ "--games", "-g" },
+			{ "--league", "-l" }
+		};
+
+
+		public readonly bool scale;
+		public readonly bool normalize;
+		public readonly int? games;
+		public readonly bool league;
+		public readonly List<string> order;
+		public readonly List<string> players;
+
+		public Args(string[] args)
+		{
+			scale = false;
+			normalize = false;
+			games = null;
+			league = false;
+
+			for (int i = 0; i < args.Length; i++)
+			{
+				if (MODIFIER_ALIAS.ContainsKey(args[i]))
+					args[i] = MODIFIER_ALIAS[args[i]];
+			}
+
+			players = new List<string>();
+
+			for (int i = 0; i < args.Length; i++)
+			{
+				if (MODIFIER_ALIAS.ContainsValue(args[i]))
+				{
+					switch (args[i])
+					{
+						case "-s":
+							scale = true;
+							break;
+
+						case "-o":
+							//combined to default
+							break;
+
+						case "-n":
+							normalize = true;
+							break;
+
+						case "-g":
+							i++;
+							games = int.Parse(args[i]);
+							break;
+
+						case "-l":
+							league = true;
+							break;
+					}
+				}
+				else
+				{
+					players.Add(args[i].ToLower());
+				}
+			}
+		}
+	}
+
+	private bool _noImgMode = true;
+
 
 	public enum Normalization
 	{
@@ -34,14 +96,9 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 	[Command("munch")]
 	public async Task MunchAsync(params string[]? args)
 	{
-		bool scale;
-		bool normalize;
-		int games;
-		bool league;
+		var parsedArgs = new Args(args);
 
-		List<string> players = new List<string>();
-		ParseArgs(args, out players, out scale, out normalize, out games, out league);
-		players = args.ToList();
+		List<string> players = new List<string>(parsedArgs.players);
 
 		try
 		{
@@ -98,7 +155,7 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 			{
 				try
 				{
-					await Util.GetPlayerGames(players.ToArray(), errors, message, playerGames);
+					await Util.GetPlayerGames(players.ToArray(), errors, message, playerGames, parsedArgs.games);
 				}
 				catch (Exception e)
 				{
@@ -136,8 +193,6 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 						catch (MunchException e)
 						{
 							errors.Add(e.Message);
-							//	message.ModifyAsync(properties =>
-							//		properties.Content = e.Message);
 						}
 
 						Interlocked.Decrement(ref munchLeft);
@@ -165,7 +220,7 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 			if (playerStats.Count == 0)
 			{
 				await message.ModifyAsync(properties =>
-					properties.Content = $"more than one player has no valid replay");
+					properties.Content = $"one or more players has no valid replay");
 
 				return;
 			}
@@ -352,53 +407,53 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 				var predData = new TREstimator.ModelInput()
 				{
 					Glicko = glickoResult.Score,
-					Single = player.Value.clearTypes.SINGLE / totalClears,
-					Double = player.Value.clearTypes.DOUBLE / totalClears,
-					Triple = player.Value.clearTypes.TRIPLE / totalClears,
-					Quad = player.Value.clearTypes.QUAD / totalClears,
-					Tspin = player.Value.clearTypes.TSPIN / totalClears,
-					TspinSingle = player.Value.clearTypes.TSPIN_SINGLE / totalClears,
-					TspinDouble = player.Value.clearTypes.TSPIN_DOUBLE / totalClears,
-					TspinTriple = player.Value.clearTypes.TSPIN_TRIPLE / totalClears,
-					TspinMini = player.Value.clearTypes.TSPIN_MINI / totalClears,
-					TspinMiniSingle = player.Value.clearTypes.TSPIN_MINI_SINGLE / totalClears,
-					//	TspinMiniDouble = player.Value.clearTypes.TSPIN_MINI_DOUBLE / totalClears,
-					PerfectClear = player.Value.clearTypes.PERFECT_CLEAR / totalClears,
-					TEfficiency = (float)Math.Min(Math.Max(0, player.Value.tEfficiency), 1),
-					IEfficiency = (float)Math.Min(Math.Max(0, player.Value.iEfficiency), 1),
-					CheeseApl = (float)Math.Min(Math.Max(0, player.Value.cheeseApl / 5f), 1),
-					DownStackAPL = (float)Math.Min(Math.Max(0, player.Value.downstackApl / 5f), 1),
-					UpStackAPL = (float)Math.Min(Math.Max(0, player.Value.upstackApl / 5f), 1),
-					APL = (float)Math.Min(Math.Max(0, player.Value.apl / 5f), 1),
-					APP = (float)Math.Min(Math.Max(0, player.Value.app / 5f), 1),
-					KPP = (float)Math.Min(Math.Max(0, player.Value.kpp / 5f), 1),
-					KPS = (float)Math.Min(Math.Max(0, player.Value.kps / 20f), 1),
-					StackHeight = (float)Math.Min(Math.Max(0, player.Value.stackHeight / 20f), 1),
-					GarbageHeight = (float)Math.Min(Math.Max(0, player.Value.garbageHeight / 20f), 1),
-					SpikeEfficiency = (float)Math.Min(Math.Max(0, player.Value.spikeEfficiency / 1f), 1),
-					APM = (float)Math.Min(Math.Max(0, player.Value.apm / 300f), 1),
-					OpenerAPM = (float)Math.Min(Math.Max(0, player.Value.openerApm / 500f), 1),
-					MidGameAPM = (float)Math.Min(Math.Max(0, player.Value.midgameApm / 300f), 1),
-					PPS = (float)Math.Min(Math.Max(0, player.Value.pps / 5f), 1),
-					OpenerPPS = (float)Math.Min(Math.Max(0, player.Value.openerPps / 5f), 1),
-					MidGamePPS = (float)Math.Min(Math.Max(0, player.Value.midgamePps / 5f), 1),
-					BTBChainEfficiency = (float)Math.Min(Math.Max(0, player.Value.btbChainEfficiency / 1f), 1),
-					BTBChain = (float)Math.Min(Math.Max(0, player.Value.btbChain / 20f), 1),
-					BTBChainAPM = (float)Math.Min(Math.Max(0, player.Value.btbChainApm / 500f), 1),
-					BTBChainAttack = (float)Math.Min(Math.Max(0, player.Value.btbChainAttack / 100f), 1),
-					BTBChainAPP = (float)Math.Min(Math.Max(0, player.Value.btbChainApp / 5f), 1),
-					BTBChainEfficiency2 = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 1f), 1),
-					ComboChain = (float)Math.Min(Math.Max(0, player.Value.comboChain / 10f), 1),
-					ComboChainAPM = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 500f), 1),
-					ComboChainAttack = (float)Math.Min(Math.Max(0, player.Value.comboChainAttack / 50f), 1),
-					ComboChainAPP = (float)Math.Min(Math.Max(0, player.Value.comboChainApp / 5f), 1),
-					AverageSpikePotential = (float)Math.Min(Math.Max(0, player.Value.averageSpikePotential / 1f), 1),
-					AverageDefencePotential =
-						(float)Math.Min(Math.Max(0, player.Value.averageDefencePotential / 30f), 1),
-					BlockfishScore = (float)Math.Min(Math.Max(0, player.Value.blockfishScore / 20f), 1),
-					BurstPPS = (float)Math.Min(Math.Max(0, player.Value.burstPps / 10f), 1),
-					AttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.attackDelayRate / 1f), 1),
-					PreAttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.preAttackDelayRate / 1f), 1),
+					/*	Single = player.Value.clearTypes.SINGLE / totalClears,
+						Double = player.Value.clearTypes.DOUBLE / totalClears,
+						Triple = player.Value.clearTypes.TRIPLE / totalClears,
+						Quad = player.Value.clearTypes.QUAD / totalClears,
+						Tspin = player.Value.clearTypes.TSPIN / totalClears,
+						TspinSingle = player.Value.clearTypes.TSPIN_SINGLE / totalClears,
+						TspinDouble = player.Value.clearTypes.TSPIN_DOUBLE / totalClears,
+						TspinTriple = player.Value.clearTypes.TSPIN_TRIPLE / totalClears,
+						TspinMini = player.Value.clearTypes.TSPIN_MINI / totalClears,
+						TspinMiniSingle = player.Value.clearTypes.TSPIN_MINI_SINGLE / totalClears,
+						//	TspinMiniDouble = player.Value.clearTypes.TSPIN_MINI_DOUBLE / totalClears,
+						PerfectClear = player.Value.clearTypes.PERFECT_CLEAR / totalClears,
+						TEfficiency = (float)Math.Min(Math.Max(0, player.Value.tEfficiency), 1),
+						IEfficiency = (float)Math.Min(Math.Max(0, player.Value.iEfficiency), 1),
+						CheeseApl = (float)Math.Min(Math.Max(0, player.Value.cheeseApl / 5f), 1),
+						DownStackAPL = (float)Math.Min(Math.Max(0, player.Value.downstackApl / 5f), 1),
+						UpStackAPL = (float)Math.Min(Math.Max(0, player.Value.upstackApl / 5f), 1),
+						APL = (float)Math.Min(Math.Max(0, player.Value.apl / 5f), 1),
+						APP = (float)Math.Min(Math.Max(0, player.Value.app / 5f), 1),
+						KPP = (float)Math.Min(Math.Max(0, player.Value.kpp / 5f), 1),
+						KPS = (float)Math.Min(Math.Max(0, player.Value.kps / 20f), 1),
+						StackHeight = (float)Math.Min(Math.Max(0, player.Value.stackHeight / 20f), 1),
+						GarbageHeight = (float)Math.Min(Math.Max(0, player.Value.garbageHeight / 20f), 1),
+						SpikeEfficiency = (float)Math.Min(Math.Max(0, player.Value.spikeEfficiency / 1f), 1),
+						APM = (float)Math.Min(Math.Max(0, player.Value.apm / 300f), 1),
+						OpenerAPM = (float)Math.Min(Math.Max(0, player.Value.openerApm / 500f), 1),
+						MidGameAPM = (float)Math.Min(Math.Max(0, player.Value.midgameApm / 300f), 1),
+						PPS = (float)Math.Min(Math.Max(0, player.Value.pps / 5f), 1),
+						OpenerPPS = (float)Math.Min(Math.Max(0, player.Value.openerPps / 5f), 1),
+						MidGamePPS = (float)Math.Min(Math.Max(0, player.Value.midgamePps / 5f), 1),
+						BTBChainEfficiency = (float)Math.Min(Math.Max(0, player.Value.btbChainEfficiency / 1f), 1),
+						BTBChain = (float)Math.Min(Math.Max(0, player.Value.btbChain / 20f), 1),
+						BTBChainAPM = (float)Math.Min(Math.Max(0, player.Value.btbChainApm / 500f), 1),
+						BTBChainAttack = (float)Math.Min(Math.Max(0, player.Value.btbChainAttack / 100f), 1),
+						BTBChainAPP = (float)Math.Min(Math.Max(0, player.Value.btbChainApp / 5f), 1),
+						BTBChainEfficiency2 = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 1f), 1),
+						ComboChain = (float)Math.Min(Math.Max(0, player.Value.comboChain / 10f), 1),
+						ComboChainAPM = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 500f), 1),
+						ComboChainAttack = (float)Math.Min(Math.Max(0, player.Value.comboChainAttack / 50f), 1),
+						ComboChainAPP = (float)Math.Min(Math.Max(0, player.Value.comboChainApp / 5f), 1),
+						AverageSpikePotential = (float)Math.Min(Math.Max(0, player.Value.averageSpikePotential / 1f), 1),
+						AverageDefencePotential =
+							(float)Math.Min(Math.Max(0, player.Value.averageDefencePotential / 30f), 1),
+						BlockfishScore = (float)Math.Min(Math.Max(0, player.Value.blockfishScore / 20f), 1),
+						BurstPPS = (float)Math.Min(Math.Max(0, player.Value.burstPps / 10f), 1),
+						AttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.attackDelayRate / 1f), 1),
+						PreAttackDelayRate = (float)Math.Min(Math.Max(0, player.Value.preAttackDelayRate / 1f), 1),*/
 				};
 
 
@@ -417,63 +472,6 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 		catch (Exception e)
 		{
 			Console.WriteLine(e.ToString());
-		}
-	}
-
-
-	private void ParseArgs(string[] args,
-		out List<string> players,
-		out bool scale,
-		out bool normalize,
-		out int games,
-		out bool league)
-	{
-		scale = false;
-		normalize = false;
-		games = int.MaxValue;
-		league = false;
-
-
-		for (int i = 0; i < args.Length; i++)
-		{
-			if (MODIFIER_ALIAS.ContainsKey(args[i]))
-				args[i] = MODIFIER_ALIAS[args[i]];
-		}
-
-		players = new List<string>();
-
-		for (int i = 0; i < args.Length; i++)
-		{
-			if (MODIFIER_ALIAS.ContainsValue(args[i]))
-			{
-				switch (args[i])
-				{
-					case "-s":
-						scale = true;
-						break;
-
-					case "-o":
-						//combined to default
-						break;
-
-					case "-n":
-						normalize = true;
-						break;
-
-					case "-g":
-						i++;
-						games = int.Parse(args[i]);
-						break;
-
-					case "-l":
-						league = true;
-						break;
-				}
-			}
-			else
-			{
-				players.Add(args[i]);
-			}
 		}
 	}
 }

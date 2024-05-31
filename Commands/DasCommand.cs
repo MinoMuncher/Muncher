@@ -26,7 +26,7 @@ public class DasModule : ModuleBase<SocketCommandContext>
 			{
 				try
 				{
-					await Util.GetPlayerGames(players.ToArray(), errors, message, playerGames);
+					await Util.GetPlayerGames(players.ToArray(), errors, message, playerGames,0);
 				}
 				catch (Exception e)
 				{
