@@ -24,7 +24,8 @@ public class ChartRadar4 : ChartBase
 			var stats = player.Value;
 			double[] radarData = new double[]
 			{
-				stats.btbChainEfficiency, stats.btbChain, stats.btbChainAttack, stats.btbChainApm,
+				stats.btbChainEfficiency, (double)stats.btbChain, (double)stats.btbChainAttack,
+				(double)stats.btbChainApm,
 				stats.comboChainEfficiency, stats.comboChain, stats.comboChainAttack,
 				stats.comboChainApm,
 			};

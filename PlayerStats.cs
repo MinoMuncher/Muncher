@@ -55,7 +55,18 @@
 		return stats;
 	}
 
-
+	public void FillNull()
+	{
+		btbChain ??= 0;
+		btbChainApm ??= 0;
+		btbChainAttack ??= 0;
+		btbChainWellshifts ??= 0;
+		btbChainApp ??= 0;
+		maxBtb ??= 0;
+		maxBtbAttack ??= 0;
+		maxBtbAttack ??= 0;
+	}
+	
 	public int[] wellColumns { get; set; }
 	public ClearTypes clearTypes { get; set; }
 	public double tEfficiency { get; set; }
@@ -78,13 +89,13 @@
 	public double openerPps { get; set; }
 	public double btbWellshifts { get; set; }
 	public double btbChainEfficiency { get; set; }
-	public double btbChain { get; set; }
-	public double btbChainApm { get; set; }
-	public double btbChainAttack { get; set; }
-	public double btbChainWellshifts { get; set; }
-	public double btbChainApp { get; set; }
-	public double maxBtb { get; set; }
-	public double maxBtbAttack { get; set; }
+	public double? btbChain { get; set; }
+	public double? btbChainApm { get; set; }
+	public double? btbChainAttack { get; set; }
+	public double? btbChainWellshifts { get; set; }
+	public double? btbChainApp { get; set; }
+	public double? maxBtb { get; set; }
+	public double? maxBtbAttack { get; set; }
 	public double comboChainEfficiency { get; set; }
 	public double comboChain { get; set; }
 	public double comboChainApm { get; set; }

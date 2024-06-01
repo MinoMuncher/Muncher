@@ -24,7 +24,7 @@ public class ChartRadar5 : ChartBase
 			var stats = player.Value;
 			double[] radarData = new double[]
 			{
-				stats.app, stats.comboChainApp, stats.btbChainApp
+				stats.app, stats.comboChainApp, (double)stats.btbChainApp
 			};
 			scalePlayers.Add(player.Key, radarData);
 		}

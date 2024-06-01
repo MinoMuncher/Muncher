@@ -208,8 +208,9 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 				for (var i = 0; i < ptrs.Length; i++)
 					ptrs[i] = (Marshal.StringToHGlobalAnsi(rawStatsJson[i]));
 				var statsJson = NativeMethod.NativeMethod.Analyze(ptrs, ptrs.Length);
-
 				var stats = JsonSerializer.Deserialize<PlayerStats>(statsJson);
+				stats.FillNull();
+
 				playerStats.AddOrUpdate(player.Key, stats, (Key, Value) => Value);
 
 				foreach (var p in ptrs)
@@ -385,10 +386,10 @@ public class MunchModule : ModuleBase<SocketCommandContext>
 					OpenerPPS = (float)Math.Min(Math.Max(0, player.Value.openerPps / 5f), 1),
 					MidGamePPS = (float)Math.Min(Math.Max(0, player.Value.midgamePps / 5f), 1),
 					BTBChainEfficiency = (float)Math.Min(Math.Max(0, player.Value.btbChainEfficiency / 1f), 1),
-					BTBChain = (float)Math.Min(Math.Max(0, player.Value.btbChain / 20f), 1),
-					BTBChainAPM = (float)Math.Min(Math.Max(0, player.Value.btbChainApm / 500f), 1),
-					BTBChainAttack = (float)Math.Min(Math.Max(0, player.Value.btbChainAttack / 100f), 1),
-					BTBChainAPP = (float)Math.Min(Math.Max(0, player.Value.btbChainApp / 5f), 1),
+					BTBChain = (float)Math.Min(Math.Max(0, (double)player.Value.btbChain / 20f), 1),
+					BTBChainAPM = (float)Math.Min(Math.Max(0, (double)player.Value.btbChainApm / 500f), 1),
+					BTBChainAttack = (float)Math.Min(Math.Max(0, (double)player.Value.btbChainAttack / 100f), 1),
+					BTBChainAPP = (float)Math.Min(Math.Max(0, (double)player.Value.btbChainApp / 5f), 1),
 					BTBChainEfficiency2 = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 1f), 1),
 					ComboChain = (float)Math.Min(Math.Max(0, player.Value.comboChain / 10f), 1),
 					ComboChainAPM = (float)Math.Min(Math.Max(0, player.Value.comboChainEfficiency / 500f), 1),
