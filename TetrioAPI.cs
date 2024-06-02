@@ -159,7 +159,7 @@ public class TetrioAPI
 			{
 				var user = JsonSerializer.Deserialize<UserSearch>(responseContent);
 				if ((bool)user.success)
-					return user.data.user;
+					return user?.data?.user;
 				else return null;
 			}
 			else
