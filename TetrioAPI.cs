@@ -163,10 +163,9 @@ public class TetrioAPI
 				else return null;
 			}
 			else
-				throw new System.Exception();
+				return null;
 		}
 
-		return null;
 	}
 
 	public static async Task<List<User>?> DownloadLeagueUserList()
